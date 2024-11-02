@@ -1,15 +1,37 @@
 import random
-from Project.sudokuExceptions import sudokuValueException
+try:
+    from Project.sudokuExceptions import SudokuValueException
+except ImportError:
+    from sudokuExceptions import SudokuValueException
 
 class Sudoku:
-    def __init__(self):
-        self.__board = [f"{chr(ord('A') + j)}{i}" for j in range(9) for i in range(1, 10)]
-        self.__board = {
-            box: {
-                "visible": True,
-                "number": None
-            } for box in self.__board
-        }
+    def __init__(self, board=None):
+        if board:
+            self.__board = board
+        else:
+            self.__board = [f"{chr(ord('A') + j)}{i}" for j in range(9) for i in range(1, 10)]
+            self.__board = {
+                box: {
+                    "visible": True,
+                    "number": None,
+                    "modifiable": False
+                } for box in self.__board
+            }
+
+    def __str__(self):
+        text = ""
+        for column in "ABCDEFGHI":
+            text += "[ "
+            for row in range(1, 10):
+                text += str(self.__board[f"{column}{row}"]["number"])
+                if row == 9:
+                    text += " ]"
+                elif row % 3 == 0:
+                    text += " ][ "
+                else:
+                    text += " | "
+            text += "\n"
+        return text
 
     def get_board(self):
         return self.__board
@@ -18,8 +40,8 @@ class Sudoku:
     def is_valid_movement(self, row: int, column: str, number: int) -> bool:
         try:
             self.is_valid_row_and_column(row, column)
-        except sudokuValueException:
-            raise sudokuValueException
+        except SudokuValueException:
+            raise SudokuValueException
 
         for new_row in range(1, 10):
             new_column = chr(ord('A') + new_row - 1)
@@ -41,8 +63,9 @@ class Sudoku:
     def is_valid_row_and_column(self, row: int, column: str):
         try:
             self.__board[f"{column}{row}"]
+            return True
         except KeyError:
-            raise sudokuValueException("La fila y/o columna especificada no son válidos")
+            raise SudokuValueException("La fila y/o columna especificada no son válidos")
 
     """Rellena una cuadrícula entera usando números aleatorios"""
     def __fill_box(self, row: int, column: str):
@@ -77,7 +100,14 @@ class Sudoku:
             row, column = random.randint(1, 9), chr(ord('A') + random.randint(0, 8))
             if self.__board[f"{column}{row}"]["visible"]:
                 self.__board[f"{column}{row}"]["visible"] = False
+                self.__board[f"{column}{row}"]["modifiable"] = True
                 num_holes -= 1
+
+    def show_box(self, row: int, column: str):
+        self.__board[f"{column}{row}"]["visible"] = True
+
+    def delete_box(self, last_action: str):
+        self.__board[last_action]["visible"] = False
 
     """Genera un Sudoku con un número determinado de casillas visibles"""
     def generate_sudoku(self, num_visibles: int=16):
@@ -89,6 +119,8 @@ class Sudoku:
 
 if __name__ == "__main__":
     sudoku = Sudoku()
-    print(sudoku.get_board())
+    print(sudoku)
+    #print(sudoku.get_board())
     sudoku.generate_sudoku()
-    print(sudoku.get_board())
+    print(sudoku)
+    #print(sudoku.get_board())
