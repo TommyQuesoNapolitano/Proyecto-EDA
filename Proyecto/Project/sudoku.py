@@ -5,11 +5,12 @@ except ImportError:
     from sudokuExceptions import SudokuValueException
 
 class Sudoku:
+    __A = ord('A')
     def __init__(self, board=None):
         if board:
             self.__board = board
         else:
-            self.__board = [f"{chr(ord('A') + j)}{i}" for j in range(9) for i in range(1, 10)]
+            self.__board = [f"{chr(self.__A + j)}{i}" for j in range(9) for i in range(1, 10)]
             self.__board = {
                 box: {
                     "visible": True,
@@ -44,44 +45,49 @@ class Sudoku:
             raise SudokuValueException
 
         for new_row in range(1, 10):
-            new_column = chr(ord('A') + new_row - 1)
-            if self.__board[f"{column}{new_row}"]["number"] == number or self.__board[f"{new_column}{row}"]["number"] == number:
+            new_column = chr(self.__A + new_row - 1)
+            box_column = f"{new_column}{row}"
+            box_row = f"{column}{new_row}"
+            if self.__board[box_row]["number"] == number or self.__board[box_column]["number"] == number:
                 return False
         
         start_row = ((row - 1) // 3) * 3 + 1
-        start_column = chr(((ord(column) - ord('A')) // 3) * 3 + ord('A'))
+        start_column = chr(((ord(column) - self.__A) // 3) * 3 + self.__A)
         
         for i in range(3):
             for j in range(3):
                 current_row = start_row + i
                 current_col = chr(ord(start_column) + j)
-                if self.__board[f"{current_col}{current_row}"]["number"] == number:
+                box = f"{current_col}{current_row}"
+                if self.__board[box]["number"] == number:
                     return False
         return True
     
     """Verifica si la fila está entre \"1\" y \"9\" y si la columna está entre \"A\" e \"I\". Si no lo es devuelve una excepción de tipo sudokuValueException"""
-    def is_valid_row_and_column(self, row: int, column: str):
+    def is_valid_row_and_column(self, row: int, column: str) -> bool:
         try:
-            self.__board[f"{column}{row}"]
+            box = f"{column}{row}"
+            self.__board[box]
             return True
         except KeyError:
             raise SudokuValueException("La fila y/o columna especificada no son válidos")
 
     """Rellena una cuadrícula entera usando números aleatorios"""
-    def __fill_box(self, row: int, column: str):
+    def __fill_box(self, row: int, column: str) -> None:
         numbers = list(range(1, 10))
         random.shuffle(numbers)
         for new_row in range(3):
             for new_column in range(3):
-                self.__board[f"{chr(ord(column) + new_column)}{row + new_row}"]["number"] = numbers.pop()
+                box = f"{chr(ord(column) + new_column)}{row + new_row}"
+                self.__board[box]["number"] = numbers.pop()
 
     """Rellena todas las cuadrículas diagonales en una dirección del juego para hacer más fácil el backtracking"""
-    def __fill_diagonal_boxes(self):
+    def __fill_diagonal_boxes(self) -> None:
         for row in range(1, 10, 3):
-            self.__fill_box(row, chr(ord('A') + row - 1))
+            self.__fill_box(row, chr(self.__A + row - 1))
 
     """Rellena los espacios faltantes del sudoku haciendo uso del backtracking y las cuadrículas generadas anteriormente"""
-    def __solve_board(self):
+    def __solve_board(self) -> None:
         for column in "ABCDEFGHI":
             for row in range(1, 10):
                 if self.__board[f"{column}{row}"]["number"] is None:
@@ -95,19 +101,20 @@ class Sudoku:
         return True
 
     """Oculta la cantidad de números especificados del tablero"""
-    def __remove_numbers(self, num_holes):
+    def __remove_numbers(self, num_holes: int) -> None:
         while num_holes > 0:
-            row, column = random.randint(1, 9), chr(ord('A') + random.randint(0, 8))
-            if self.__board[f"{column}{row}"]["visible"]:
-                self.__board[f"{column}{row}"]["visible"] = False
-                self.__board[f"{column}{row}"]["modifiable"] = True
+            row, column = random.randint(1, 9), chr(self.__A + random.randint(0, 8))
+            box = f"{column}{row}"
+            if self.__board[box]["visible"]:
+                self.__board[box]["visible"] = False
+                self.__board[box]["modifiable"] = True
                 num_holes -= 1
 
-    def show_box(self, row: int, column: str):
+    def show_box(self, row: int, column: str) -> None:
         self.__board[f"{column}{row}"]["visible"] = True
 
-    def delete_box(self, last_action: str):
-        self.__board[last_action]["visible"] = False
+    def delete_box(self, row: int, column: str) -> None:
+        self.__board[f"{column}{row}"]["visible"] = False
 
     """Genera un Sudoku con un número determinado de casillas visibles"""
     def generate_sudoku(self, num_visibles: int=16):
@@ -120,7 +127,5 @@ class Sudoku:
 if __name__ == "__main__":
     sudoku = Sudoku()
     print(sudoku)
-    #print(sudoku.get_board())
     sudoku.generate_sudoku()
     print(sudoku)
-    #print(sudoku.get_board())

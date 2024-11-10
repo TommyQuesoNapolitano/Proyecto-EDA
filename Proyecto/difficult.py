@@ -1,4 +1,5 @@
 import pygame
+
 pygame.init()
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
@@ -22,11 +23,11 @@ def select_difficulty():
     difficulty_buttons = []
     for i, diff in enumerate(difficulties):
         text = font.render(diff, True, BLACK)
-        button_rect = pygame.Rect(SCREEN_WIDTH // 2 - 100, 250 + i * 100, 200, 80)
+        button_rect = pygame.Rect(SCREEN_WIDTH // 2 - 100, 250 + i * 100, 250, 80)
         pygame.draw.rect(screen, GRAY, button_rect)
         screen.blit(text, (button_rect.x + 50, button_rect.y + 10))
         difficulty_buttons.append((button_rect, diff))
-    
+
     pygame.display.flip()
     return difficulty_buttons
 
@@ -45,7 +46,7 @@ def main_menu():
                     if button.collidepoint(pos):
                         difficulty = diff
                         running = False
-        
+
         pygame.display.flip()
 
     return difficulty
