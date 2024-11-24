@@ -6,10 +6,20 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Sudoku - Menú Principal")
 
-WHITE = (255, 255, 255)
-GRAY = (200, 200, 200)
-BLACK = (0, 0, 0)
+# Colores
+WHITE = (245, 245, 245)
+DARK_GRAY = (34, 34, 34)
+SOFT_BLUE = (50, 150, 200)
+BUTTON_TEXT_COLOR = (255, 255, 255)
+PASTEL_GREEN = (100, 200, 100)
+SOFT_ORANGE = (255, 165, 0)
+SOFT_PURPLE = (200, 100, 255)
+SHADOW = (200, 200, 200)
+HOVER_MODIFIER = 20  # Intensidad del hover
+
 font = pygame.font.Font(None, 74)
+button_font = pygame.font.Font(None, 50)
+
 
 def do_actions(pos, buttons, callback):
     for button, action in buttons:
@@ -17,22 +27,41 @@ def do_actions(pos, buttons, callback):
             callback(action)
             break
 
+
 def main_menu():
     running = True
     while running:
         screen.fill(WHITE)
 
-        title_text = font.render("Sudoku", True, BLACK)
+        # Título
+        title_text = font.render("Sudoku", True, DARK_GRAY)
         screen.blit(title_text, (SCREEN_WIDTH // 2 - title_text.get_width() // 2, 100))
 
         # Botones de opciones
         options = ["Seleccionar Dificultad", "Créditos", "Cómo Jugar"]
         buttons = []
+        button_colors = [PASTEL_GREEN, SOFT_ORANGE, SOFT_PURPLE]
+        left = SCREEN_WIDTH // 2 - 200
+        mouse_pos = pygame.mouse.get_pos()  # Obtener posición del mouse
+
         for idx, option in enumerate(options):
-            option_text = font.render(option, True, BLACK)
-            button_rect = pygame.Rect(SCREEN_WIDTH // 2 - 200, 250 + idx * 120, 400, 80)
-            pygame.draw.rect(screen, GRAY, button_rect)
-            screen.blit(option_text, (button_rect.x + 20, button_rect.y + 10))
+            button_rect = pygame.Rect(left, 250 + idx * 120, 400, 80)
+            
+            # Detectar hover
+            color = tuple(min(255, c + HOVER_MODIFIER) if button_rect.collidepoint(mouse_pos) else c for c in button_colors[idx])
+
+            # Sombra
+            shadow_rect = pygame.Rect(button_rect.x + 5, button_rect.y + 5, button_rect.width, button_rect.height)
+            pygame.draw.rect(screen, SHADOW, shadow_rect, border_radius=15)
+
+            # Dibujar botón con el color correspondiente
+            pygame.draw.rect(screen, color, button_rect, border_radius=15)
+
+            # Texto
+            option_text = button_font.render(option, True, BUTTON_TEXT_COLOR)
+            screen.blit(option_text, (button_rect.x + (button_rect.width - option_text.get_width()) // 2, 
+                                      button_rect.y + (button_rect.height - option_text.get_height()) // 2))
+            
             buttons.append((button_rect, option))
 
         pygame.display.flip()
@@ -44,6 +73,7 @@ def main_menu():
                 pos = event.pos
                 do_actions(pos, buttons, lambda action: handle_option(action))
 
+
 def handle_option(action):
     if action == "Seleccionar Dificultad":
         difficulty = difficult.main_menu()  # Asume que tienes una función para seleccionar dificultad
@@ -52,5 +82,6 @@ def handle_option(action):
         credits.show_credits()
     elif action == "Cómo Jugar":
         instructions.show_instructions()  # Llama a las instrucciones
+
 
 main_menu()

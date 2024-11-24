@@ -10,38 +10,35 @@ class StackSudoku(Sudoku):
         super().__init__(board)
         self.__actions = {}
 
-    """Returns a sudoku's board, using Sudoku's class"""
     def get_sudoku_board(self):
         return self.get_board()
 
-    """Check if the number already exists in the row or column, if not the user lost an attempt. If user doesn't have any attempt it'll raise an exception of tye SudokuLostGame"""
-    def is_valid_number(self, *args, attempts: int, row: int, column: str, number: int) -> bool:
-        is_valid = self.is_valid_movement(row, column, number)
+    def get_actions(self):
+        return self.__actions
+
+    def is_valid_number(self, row: int, column: str, number: int, attempts: int) -> tuple[bool, int]:
+        box = f"{column}{row}"
+        is_valid = self.get_board()[box]['number'] == number
         if not is_valid:
             attempts -= 1
-        else:
-            self.show_box(row, column)
-            self.__push_action(row, column)
 
         if attempts == 0:
             raise SudokuGameLost("Lo sentimos, has perdido el juego, más suerte para la próxima")
 
-        return is_valid
+        return is_valid, attempts
 
-    def __push_action(self, row: int, column: str, number: int) -> None:
+    def push_action(self, row: int | str, column: str, number: int) -> None:
         try:
             box = f"{column}{row}"
-            if self.__actions[box]:
-                return
-            self.__actions[box] = {'number': number}
+            self.__actions[box]
         except KeyError:
-            pass
+            self.__actions[box] = {'number': number}
 
     def delete_last_action(self) -> None:
         last_action = self.__actions.popitem()[0]
         self.delete_box(last_action[1], last_action[0])
-    
-    def delete_box_number(self, row: int, column: str) -> None:
+
+    def delete_box_number(self, row: int | str, column: str) -> None:
         try:
             box = f"{column}{row}"
             if self.__actions[box]:
