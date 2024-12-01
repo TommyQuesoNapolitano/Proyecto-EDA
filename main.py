@@ -2,14 +2,14 @@ import pygame, Project.game, random, json, os
 from Project.game import StackSudoku
 from Project.sudokuExceptions import SudokuValueException, SudokuGameLost, SudokuGameWin
 from typing import Callable, Any
-#import time
 
 pygame.init()
 
+# Tamaño de la ventana del juego
 SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-# Colores
+# Colores para los elementos del juego
 WHITE = (245, 245, 245)
 DARK_GRAY = (34, 34, 34)
 SOFT_BLUE = (50, 150, 200)
@@ -24,22 +24,39 @@ GRID_COLOR = (180, 180, 180)
 LINE_WIDTH = 2
 HOVER_MODIFIER = 20
 
-TYPE_BUTTON = tuple[pygame.Rect, Any]
-POSITIONS = tuple[int, int]
+# Tipado para botones y posiciones
+TYPE_BUTTON = tuple[pygame.Rect, Any]  # Un botón es un rectángulo junto con su acción asociada
+POSITIONS = tuple[int, int]  # Representa una posición (x, y)
+
+# Número de intentos restantes del jugador
 remaining_attempts = 3
+
+# Temporizador global
 timer = 0
 
-font = pygame.font.Font(None, 74)
-button_font = pygame.font.Font(None, 50)
-number_font = pygame.font.Font(None, 40)
+# Fuentes para los textos del juego
+font = pygame.font.Font(None, 74)  # Fuente principal
+button_font = pygame.font.Font(None, 50)  # Fuente para los botones
+number_font = pygame.font.Font(None, 40)  # Fuente para los números del tablero
 
+# Número de casillas visibles en el tablero según la dificultad
 num_visibles = {"fácil": 24, "normal": 18, "difícil": 12}
 
+# Diccionario para almacenar las posiciones de las casillas del tablero
+# Clave: Identificador único de la casilla (e.g., "A1"), Valor: pygame.Rect (posición en pantalla)
 box_positions: dict[str, pygame.Rect] = {}
 
-button_states = {"Notas": False, "Borrar": False, **{i: False for i in range(1, 10)}}
+# Estados dinámicos de los botones
+button_states = {
+    "Notas": False,  # Botón para activar el modo de notas
+    "Borrar": False,  # Botón para borrar una casilla
+    **{i: False for i in range(1, 10)}  # Estados para los botones numéricos (1-9)
+}
 
 def lose_screen() -> None:
+    """
+    Pantalla mostrada cuando el jugador pierde la partida.
+    """
     running = True
     while running:
         screen.fill(WHITE)
@@ -48,12 +65,13 @@ def lose_screen() -> None:
         lose_text = font.render("¡Juego Perdido!", True, DARK_GRAY)
         screen.blit(lose_text, ((SCREEN_WIDTH - lose_text.get_width()) // 2, SCREEN_HEIGHT // 3))
 
-        # Botón para cerrar
+        # Botón para cerrar el juego
         close_text = button_font.render("Cerrar", True, BUTTON_TEXT_COLOR)
         close_button = pygame.Rect((SCREEN_WIDTH - close_text.get_width() - 40) // 2, SCREEN_HEIGHT // 2, close_text.get_width() + 40, 60)
         pygame.draw.rect(screen, SOFT_ORANGE, close_button, border_radius=10)
         screen.blit(close_text, (close_button.x + 20, close_button.y + 10))
 
+        # Eventos para cerrar el juego
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -116,28 +134,28 @@ def win_screen() -> None:
         pygame.display.flip()
 
 def get_time(time: int) -> str:
+    """
+    Convierte el tiempo en ticks a un formato legible de horas, minutos y segundos.
+    """
     seconds = time // 500
-    minutes = seconds // 60
-    hours = minutes // 60
-    minutes %= 60
-    seconds %= 60
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
     text = ""
-
     if hours:
         text += f"{hours} h "
-
     if minutes:
         text += f"{minutes} min "
-    
     text += f"{seconds} seg"
-
     return text
 
 def update_ui(remaining_attempts: int, difficulty: str, TIMER_POS: POSITIONS, ATTEMPTS_POS: POSITIONS, DIFFICULTY_POS: POSITIONS, sudoku_board: StackSudoku, timer: int = 0) -> tuple[list[TYPE_BUTTON], list[TYPE_BUTTON], int]:
+    """
+    Actualiza la interfaz del juego, incluyendo el tablero, botones y estado.
+    """
     timer += 1
     screen.fill(WHITE)
 
-    # Mostrar tiempo, intentos y dificultad
+    # Mostrar tiempo, intentos restantes y dificultad
     timer_text = button_font.render(f"Tiempo: {get_time(timer)}", True, DARK_GRAY)
     attempts_text = button_font.render(f"Intentos restantes: {remaining_attempts}", True, DARK_GRAY)
     difficulty_text = button_font.render(f"Dificultad: {difficulty}", True, DARK_GRAY)
@@ -146,26 +164,32 @@ def update_ui(remaining_attempts: int, difficulty: str, TIMER_POS: POSITIONS, AT
     screen.blit(attempts_text, ATTEMPTS_POS)
     screen.blit(difficulty_text, DIFFICULTY_POS)
 
-    # Dibujo del tablero (cuadrícula)
-    board_x, board_y = 400, 80
-    cell_size = 50
-    for i in range(9):
-        for j in range(9):
-            x = board_x + j * cell_size + 2 * (j // 3)
-            y = board_y + i * cell_size + 2 * (i // 3)
+    # Dibujo del tablero de Sudoku
+    board_x, board_y = 400, 80  # Posición inicial del tablero
+    cell_size = 50  # Tamaño de cada celda
+    for i in range(9):  # Iterar por las filas
+        for j in range(9):  # Iterar por las columnas
+            x = board_x + j * cell_size + 2 * (j // 3)  # Posición x con márgenes
+            y = board_y + i * cell_size + 2 * (i // 3)  # Posición y con márgenes
 
+            # Dibujar la celda
             cell = pygame.Rect(x, y, cell_size, cell_size)
             pygame.draw.rect(screen, GRID_COLOR, cell, LINE_WIDTH)
 
-            box = lambda i, j: sudoku_board.get_sudoku_board()[f"{chr(ord('A') + j)}{i + 1}"]
+            # Guardar la posición de la casilla en el diccionario
             box_positions[f"{chr(ord('A') + j)}{i + 1}"] = cell
+
+            # Obtener datos de la casilla desde el tablero
+            box = lambda i, j: sudoku_board.get_sudoku_board()[f"{chr(ord('A') + j)}{i + 1}"]
             number, visible, modifiable = box(i, j)["number"], box(i, j)["visible"], box(i, j)["modifiable"]
+
+            # Dibujar el número si es visible
             if visible:
                 color = GENERATED_NUMBER_COLOR if not modifiable else NUMBER_COLOR
                 number_text = number_font.render(str(number), True, color)
                 screen.blit(number_text, (x + 15, y + 10))
 
-    # Opciones de acción (botones)
+    # Crear botones de acciones (Pista, Deshacer, etc.)
     actions = ["Pista", "Deshacer", "Notas", "Borrar"]
     action_buttons = []
     left = 300
@@ -176,32 +200,17 @@ def update_ui(remaining_attempts: int, difficulty: str, TIMER_POS: POSITIONS, AT
         button_rect = pygame.Rect(left, SCREEN_HEIGHT - 150, width, 60)
         left += width + 15
 
-        # Color según el estado
-        base_color = action_button_colors[idx]
-        if action in button_states and button_states[action]:  # Solo aplica a botones con estado dinámico
-            color = tuple(max(0, c - 50) for c in base_color)  # Activo
-        else:
-            mouse_pos = pygame.mouse.get_pos()
-            color = tuple(min(255, c + HOVER_MODIFIER) if button_rect.collidepoint(mouse_pos) else c for c in base_color)
-
         # Dibujar botón
-        pygame.draw.rect(screen, color, button_rect, border_radius=15)
+        base_color = action_button_colors[idx]
+        pygame.draw.rect(screen, base_color, button_rect, border_radius=15)
         screen.blit(action_text, (button_rect.x + 20, button_rect.y + 10))
         action_buttons.append((button_rect, action))
 
-    # Botones de números (1-9)
+    # Crear botones numéricos (1-9)
     number_buttons = []
     for i in range(1, 10):
         button_rect = pygame.Rect(300 + (i - 1) * 75, SCREEN_HEIGHT - 75, 70, 60)
-
-        # Color según el estado
-        if button_states[i]:  # Activo
-            color = tuple(max(0, c - 50) for c in SOFT_BLUE)
-        else:
-            mouse_pos = pygame.mouse.get_pos()
-            color = tuple(min(255, c + HOVER_MODIFIER) if button_rect.collidepoint(mouse_pos) else c for c in SOFT_BLUE)
-
-        pygame.draw.rect(screen, color, button_rect)
+        pygame.draw.rect(screen, SOFT_BLUE, button_rect)
         number_text = button_font.render(str(i), True, BUTTON_TEXT_COLOR)
         screen.blit(number_text, (button_rect.x + 25, button_rect.y + 10))
         number_buttons.append((button_rect, i))
